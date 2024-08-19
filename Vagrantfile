@@ -1,44 +1,25 @@
-# -*- mode: ruby -*-
-# vim: set ft=ruby :
-
 MACHINES = {
-  :nginx => {
-        :box_name => "generic/ubuntu2204",
-        :vm_name => "nginx",
-        :net => [
-           ["192.168.11.150",  2, "255.255.255.0", "mynet"],
-        ]
-  }
+  :"kernel-update" => {
+              :box_name => "centos8s",
+#              :box_version => "4.3.2",
+              :cpus => 2,
+              :memory => 1024,
+            }
 }
 
 Vagrant.configure("2") do |config|
-
   MACHINES.each do |boxname, boxconfig|
-
+    config.vm.synced_folder ".", "/vagrant", disabled: true
+	config.vm.network "private_network", ip: "192.168.11.11",
+    virtualbox__intnet: true
     config.vm.define boxname do |box|
-   
       box.vm.box = boxconfig[:box_name]
-      box.vm.host_name = boxconfig[:vm_name]
-      
+      box.vm.box_version = boxconfig[:box_version]
+      box.vm.host_name = boxname.to_s
       box.vm.provider "virtualbox" do |v|
-        v.memory = 768
-        v.cpus = 1
-       end
-
-      boxconfig[:net].each do |ipconf|
-        box.vm.network("private_network", ip: ipconf[0], adapter: ipconf[1], netmask: ipconf[2], virtualbox__intnet: ipconf[3])
+        v.memory = boxconfig[:memory]
+        v.cpus = boxconfig[:cpus]
       end
-
-      if boxconfig.key?(:public)
-        box.vm.network "public_network", boxconfig[:public]
-      end
-
-      box.vm.provision "shell", inline: <<-SHELL
-        mkdir -p ~root/.ssh
-        cp ~vagrant/.ssh/auth* ~root/.ssh
-        sudo sed -i 's/\#PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-        systemctl restart sshd
-      SHELL
     end
   end
 end
